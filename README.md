@@ -1,8 +1,15 @@
-# TFI · Lector de máquinas · v0.1.5
+# TFI · Lector de máquinas · v0.1.6
 
 Standalone Spanish live barcode/QR scanner for the maintenance TEST app. The scanner decodes on the phone and sends only the decoded identifier to the opening app. No Google account, ChatGPT account or app credentials are embedded here.
 
 Published TEST scanner: https://driedi-ops.github.io/CamScanner/
+
+## v0.1.6 update: plate first, then Holt sticker or QR
+
+- For the first 5 seconds only the CAT plate is accepted: a full PIN (CAT + 14 characters), a 17-character PIN, or the serial (MYK11426, TN200735). A Holt sticker or QR read during that time is kept, not sent.
+- If no plate is read in time, the scanner uses the sticker it already saw. If it saw none, it says *No se pudo leer la placa. Apunte al sticker Holt o al QR.* and accepts the next code of any kind. **Leer sticker Holt / QR** skips the wait.
+- A **flashlight button** appears only when the phone lets web pages control it (Chrome on Android). Safari on iPhone does not. Continuous focus is requested where it is supported. The camera now asks for 1920×1080 so the small plate barcode has more detail.
+- Removed the PRUEBAS tag: the same scanner serves PRUEBAS and PRODUCCIÓN. No Apps Script change or redeploy is needed.
 
 ## v0.1.5 update
 

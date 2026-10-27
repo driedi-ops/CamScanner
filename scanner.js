@@ -1,6 +1,15 @@
 'use strict';
 var scanReader=null,scanRun=0,scanTimer=null,scanValue='',scanState='',scanTarget='';
 var scanWaiting=false,scanDelivered=false,scanAckTimer=null,scanReturnTimer=null,scanAutoPending=false;
+// Plate first: for PLATE_MS only the CAT plate (PIN/serial) is accepted. A Holt sticker or QR seen meanwhile is kept
+// and used when that time runs out; with nothing seen, any code is accepted from then on.
+var PLATE_MS=5000,scanPhase='placa',scanFallback='',scanPhaseTimer=null,scanTrack=null,torchOn=false;
+function isPlateCode(v){
+ var k=String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ if(/^CAT[0-9A-Z]{14}$/.test(k))return true; // PIN completo: CAT00320CMYK11426
+ if(/^[0-9A-Z]{17}$/.test(k)&&/[A-Z]/.test(k)&&/[0-9]/.test(k))return true; // PIN de 17 sin prefijo CAT
+ return /^[A-Z0-9]{3}[0-9]{5}$/.test(k)&&/[A-Z]/.test(k); // serial: MYK11426, TN200735
+}
 var el=function(id){return document.getElementById(id);};
 function allowedTarget(origin){return /^https:\/\/(?:[a-z0-9-]+-)?script\.googleusercontent\.com$/.test(origin);}
 (function(){
@@ -12,7 +21,8 @@ function loadDecoder(){
  return window.ZXing?Promise.resolve(window.ZXing):Promise.reject(new Error('decoder'));
 }
 function stopScan(note){
- scanRun++;if(scanTimer)clearTimeout(scanTimer);scanTimer=null;
+ scanRun++;if(scanTimer)clearTimeout(scanTimer);scanTimer=null;if(scanPhaseTimer)clearTimeout(scanPhaseTimer);scanPhaseTimer=null;
+ scanTrack=null;torchOn=false;el('torch').classList.add('hidden');el('torch').textContent='Encender linterna';el('any').classList.add('hidden');
  if(scanReader){scanReader.reset();scanReader=null;}
  var video=el('video');if(video.srcObject){video.srcObject.getTracks().forEach(function(t){t.stop();});video.srcObject=null;}
  el('start').disabled=false;el('start').classList.remove('hidden');el('stop').classList.add('hidden');if(note)el('status').textContent=note;
@@ -39,11 +49,44 @@ async function startScan(){
   var hints=new Map();hints.set(zx.DecodeHintType.POSSIBLE_FORMATS,[zx.BarcodeFormat.CODE_39,zx.BarcodeFormat.CODE_128,zx.BarcodeFormat.QR_CODE,zx.BarcodeFormat.DATA_MATRIX,zx.BarcodeFormat.EAN_13,zx.BarcodeFormat.EAN_8,zx.BarcodeFormat.ITF,zx.BarcodeFormat.UPC_A,zx.BarcodeFormat.UPC_E]);
   hints.set(zx.DecodeHintType.TRY_HARDER,true);
   var reader=new zx.BrowserMultiFormatReader(hints,250);scanReader=reader;
-  await reader.decodeFromConstraints({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}},el('video'),function(result){if(run===scanRun&&result)foundCode(result.getText());});
+  scanPhase='placa';scanFallback='';
+  await reader.decodeFromConstraints({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}},el('video'),function(result){if(run===scanRun&&result)onDecoded(result.getText());});
   if(run!==scanRun){reader.reset();return;}
-  el('status').textContent='Buscando código… Mantenga el teléfono quieto.';
+  setupTrack();
+  el('status').textContent='Buscando la placa CAT… Mantenga el teléfono quieto.';el('hint').textContent='Apunte a la placa CAT. Luz de lado, no de frente.';
+  el('any').classList.remove('hidden');
+  scanPhaseTimer=setTimeout(function(){scanPhaseTimer=null;if(run===scanRun)acceptAnyCode(true);},PLATE_MS);
   scanTimer=setTimeout(function(){stopScan('Aún no se pudo leer. Limpie la placa, evite reflejos y vuelva a intentar.');},60000);
  }catch(error){if(run===scanRun)stopScan(cameraError(error));}
+}
+function onDecoded(value){
+ value=String(value||'').trim();if(!value||value.length>512)return;
+ if(scanPhase==='placa'&&!isPlateCode(value)){
+  if(!scanFallback){scanFallback=value;el('status').textContent='Leí un sticker. Sigo buscando la placa unos segundos…';}
+  return;
+ }
+ foundCode(value);
+}
+// After the plate time (or on tap): use a sticker already seen, otherwise accept the next code of any kind.
+function acceptAnyCode(timedOut){
+ if(scanPhaseTimer)clearTimeout(scanPhaseTimer);scanPhaseTimer=null;
+ scanPhase='cualquiera';el('any').classList.add('hidden');
+ if(scanFallback){foundCode(scanFallback);return;}
+ el('status').textContent=timedOut?'No se pudo leer la placa. Apunte al sticker Holt o al QR.':'Apunte al sticker Holt o al QR.';
+ el('hint').textContent='Apunte al sticker Holt o al QR';
+}
+// Linterna y enfoque: solo si el navegador lo permite (Chrome en Android sí; Safari en iPhone no ofrece linterna).
+function setupTrack(){
+ var video=el('video'),tracks=video.srcObject&&video.srcObject.getVideoTracks?video.srcObject.getVideoTracks():[];
+ scanTrack=tracks[0]||null;if(!scanTrack||!scanTrack.getCapabilities)return;
+ var caps={};try{caps=scanTrack.getCapabilities()||{};}catch(e){}
+ if(caps.focusMode&&caps.focusMode.indexOf('continuous')>=0){try{scanTrack.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(function(){});}catch(e){}}
+ if(caps.torch)el('torch').classList.remove('hidden');
+}
+async function toggleTorch(){
+ if(!scanTrack)return;
+ try{await scanTrack.applyConstraints({advanced:[{torch:!torchOn}]});torchOn=!torchOn;el('torch').textContent=torchOn?'Apagar linterna':'Encender linterna';}
+ catch(e){el('torch').classList.add('hidden');el('status').textContent='Este teléfono no permite la linterna desde la página. Use otra luz, de lado.';}
 }
 function autoStartScan(){
  if(!scanAutoPending||document.hidden)return;
@@ -95,5 +138,7 @@ el('stop').addEventListener('click',function(){stopScan('Cámara detenida. Puede
 el('copy').addEventListener('click',copyCode);
 el('again').addEventListener('click',startScan);
 el('return').addEventListener('click',returnToApp);
+el('torch').addEventListener('click',toggleTorch);
+el('any').addEventListener('click',function(){acceptAnyCode(false);});
 // Plain visits keep the manual button. Only an app-launched scan starts automatically.
 if(scanState&&scanTarget&&window.opener&&!window.opener.closed){scanAutoPending=true;autoStartScan();}
