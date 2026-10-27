@@ -60,7 +60,7 @@ function harness(options={}){
  h.ack(true);assert.equal(h.counts().focused,1);assert.equal(h.counts().closed,1);
  assert(h.el('resultTitle').textContent.includes('Máquina recibida'));assert(!h.el('return').classList.contains('hidden'));
  h.tick(3000);assert(!h.el('delivery').textContent.includes('No llegó'));
- h.tick(800);assert(h.el('status').textContent.includes('Máquina recibida en mantenimiento'));assert(h.el('delivery').textContent.includes('toque Volver'));
+ h.tick(800);assert(h.el('status').textContent.includes('Máquina recibida en el formulario'));assert(h.el('delivery').textContent.includes('toque Volver'));
  h.ack(true);assert.equal(h.counts().closed,1);
  // Focus can fail for the Apps Script iframe. Close must still run independently.
  const deniedFocus=harness({focusThrows:true});await deniedFocus.ctx.startScan();deniedFocus.found('ABC');deniedFocus.ack(true);assert.equal(deniedFocus.counts().closed,1);
@@ -80,7 +80,7 @@ function harness(options={}){
  assert(!/type=.file|fetch\(|XMLHttpRequest|localStorage|sessionStorage|console\.log|https:\/\/cdn/.test(source));
  const html=fs.readFileSync(__dirname+'/index.html','utf8'),crypto=require('crypto'),vendor=fs.readFileSync(__dirname+'/vendor/zxing-0.23.0.min.js');
  assert(html.includes("connect-src 'none'"));assert(!/onclick=|<script[^>]*https?:/.test(html));
- assert(html.includes('scanner.js?v=0.1.4'));assert(html.includes('sha384-'+crypto.createHash('sha384').update(vendor).digest('base64')));
+ assert(html.includes('scanner.js?v=0.1.5'));assert(html.includes('sha384-'+crypto.createHash('sha384').update(vendor).digest('base64')));
  const zx=require(__dirname+'/vendor/zxing-0.23.0.min.js');
  assert.equal(typeof zx.BrowserMultiFormatReader,'function');assert.equal(typeof zx.BrowserMultiFormatReader.prototype.decodeFromConstraints,'function');
  const f=JSON.parse(fs.readFileSync(__dirname+'/ean13-fixture.json','utf8'));

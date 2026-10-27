@@ -54,26 +54,26 @@ function foundCode(value){
  value=String(value||'').trim();if(!value||value.length>512)return;
  clearDeliveryTimers();stopScan();scanValue=value;scanWaiting=false;scanDelivered=false;
  el('value').textContent=value;el('resultTitle').textContent='Código leído';el('result').classList.remove('hidden','pending','warning');el('camera').classList.add('hidden');el('start').classList.add('hidden');el('status').textContent='Lectura terminada. Cámara apagada.';
- el('delivery').textContent='Copie el código y péguelo en Buscar por serial o número Holt en mantenimiento.';
+ el('delivery').textContent='Copie el código y péguelo en Buscar por serial o número Holt en el formulario.';
  if(window.opener&&!window.opener.closed&&scanState&&scanTarget){
-  scanWaiting=true;el('result').classList.add('pending');el('status').textContent='Código leído. Confirmando la máquina…';el('delivery').textContent='Esperando confirmación de mantenimiento…';
+  scanWaiting=true;el('result').classList.add('pending');el('status').textContent='Código leído. Confirmando la máquina…';el('delivery').textContent='Esperando confirmación del formulario…';
   try{
    window.opener.postMessage({type:'TFI_SCAN_RESULT',state:scanState,value:value},scanTarget);
    scanAckTimer=setTimeout(function(){
     scanAckTimer=null;el('result').classList.remove('pending');el('result').classList.add('warning');el('return').classList.remove('hidden');el('status').textContent='Código leído; recepción sin confirmar.';
-    el('delivery').textContent='No llegó la confirmación. Vuelva a mantenimiento y revise si aparece la máquina. Si no aparece, copie este código y péguelo en la búsqueda.';
+    el('delivery').textContent='No llegó la confirmación. Vuelva al formulario y revise si aparece la máquina. Si no aparece, copie este código y péguelo en la búsqueda.';
    },3000);
-  }catch(e){scanWaiting=false;el('result').classList.remove('pending');el('result').classList.add('warning');el('delivery').textContent='No se pudo enviar el código. Cópielo y péguelo en la búsqueda de mantenimiento.';el('status').textContent='Código leído; no se pudo enviar.';}
+  }catch(e){scanWaiting=false;el('result').classList.remove('pending');el('result').classList.add('warning');el('delivery').textContent='No se pudo enviar el código. Cópielo y péguelo en la búsqueda del formulario.';el('status').textContent='Código leído; no se pudo enviar.';}
  }
 }
 window.addEventListener('message',function(event){
  var d=event.data;if(!scanWaiting||!scanValue||event.origin!==scanTarget||event.source!==window.opener||!d||d.type!=='TFI_SCAN_ACK'||d.state!==scanState||typeof d.accepted!=='boolean')return;
  scanWaiting=false;clearDeliveryTimers();el('result').classList.remove('pending','warning');el('return').classList.remove('hidden');
- if(!d.accepted){el('result').classList.add('warning');el('resultTitle').textContent='Máquina sin identificar';el('status').textContent='Código recibido; máquina sin identificar.';el('delivery').textContent='El código llegó a mantenimiento, pero no identifica una sola máquina. Escanee otra etiqueta o vuelva y busque por serial o Holt.';return;}
- scanDelivered=true;el('resultTitle').textContent='✓ Máquina recibida';el('status').textContent='Máquina recibida. Volviendo a mantenimiento…';el('delivery').textContent='La máquina ya está seleccionada en mantenimiento. Revise el serial y toque Usar esta máquina.';
+ if(!d.accepted){el('result').classList.add('warning');el('resultTitle').textContent='Máquina sin identificar';el('status').textContent='Código recibido; máquina sin identificar.';el('delivery').textContent='El código llegó al formulario, pero no identifica una sola máquina. Escanee otra etiqueta o vuelva y busque por serial o Holt.';return;}
+ scanDelivered=true;el('resultTitle').textContent='✓ Máquina recibida';el('status').textContent='Máquina recibida. Volviendo al formulario…';el('delivery').textContent='La máquina ya está seleccionada en el formulario. Revise el serial y toque Usar esta máquina.';
  returnToApp();
 });
-async function copyCode(){try{await navigator.clipboard.writeText(scanValue);el('copy').textContent='Código copiado';}catch(e){el('delivery').textContent='Mantenga pulsado el código para copiarlo y péguelo en mantenimiento.';}}
+async function copyCode(){try{await navigator.clipboard.writeText(scanValue);el('copy').textContent='Código copiado';}catch(e){el('delivery').textContent='Mantenga pulsado el código para copiarlo y péguelo en el formulario.';}}
 window.addEventListener('pagehide',function(){stopScan();clearDeliveryTimers();scanWaiting=false;scanAutoPending=false;});
 document.addEventListener('visibilitychange',function(){if(document.hidden)stopScan();else autoStartScan();});
 
@@ -83,8 +83,8 @@ function returnToApp(){
  // If the browser keeps this tab open, leave an explicit success and a tap target.
  scanReturnTimer=setTimeout(function(){
   scanReturnTimer=null;el('return').classList.remove('hidden');
-  el('status').textContent=scanDelivered?'✓ Máquina recibida en mantenimiento.':'Vuelva a mantenimiento para revisar el código.';
-  el('delivery').textContent=scanDelivered?'La máquina ya está seleccionada. Si esta pestaña sigue abierta, toque Volver a mantenimiento. Si el navegador la mantiene abierta, ciérrela para volver a la app.':'Si esta pestaña sigue abierta, ciérrela para volver a mantenimiento y revisar el código.';
+  el('status').textContent=scanDelivered?'✓ Máquina recibida en el formulario.':'Vuelva al formulario para revisar el código.';
+  el('delivery').textContent=scanDelivered?'La máquina ya está seleccionada. Si esta pestaña sigue abierta, toque Volver al formulario. Si el navegador la mantiene abierta, ciérrela para volver a la app.':'Si esta pestaña sigue abierta, ciérrela para volver al formulario y revisar el código.';
  },800);
  // Apps Script opens us from an iframe. A denied focus request must not prevent close.
  try{window.opener.focus();}catch(e){}

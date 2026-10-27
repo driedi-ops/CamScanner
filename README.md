@@ -1,8 +1,12 @@
-# TFI · Lector de máquinas · v0.1.4
+# TFI · Lector de máquinas · v0.1.5
 
 Standalone Spanish live barcode/QR scanner for the maintenance TEST app. The scanner decodes on the phone and sends only the decoded identifier to the opening app. No Google account, ChatGPT account or app credentials are embedded here.
 
 Published TEST scanner: https://driedi-ops.github.io/CamScanner/
+
+## v0.1.5 update
+
+Return labels now refer to the opening form, so the same generic scanner can serve maintenance and inventory machine selection. The bridge payload, origin checks, local decoder, camera startup and return behavior are unchanged. Compatible with private TEST Apps Script v0.2.0 (maintenance, consumption/issue machine assignment and equipment transfer) and the previous v0.1.2 maintenance bridge. No roster, inventory data or user token is added to this public repository.
 
 ## v0.1.4 update
 
