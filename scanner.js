@@ -1,6 +1,6 @@
 'use strict';
 var scanReader=null,scanRun=0,scanTimer=null,scanValue='',scanState='',scanTarget='';
-var scanWaiting=false,scanDelivered=false,scanAckTimer=null,scanReturnTimer=null;
+var scanWaiting=false,scanDelivered=false,scanAckTimer=null,scanReturnTimer=null,scanAutoPending=false;
 var el=function(id){return document.getElementById(id);};
 function allowedTarget(origin){return /^https:\/\/(?:[a-z0-9-]+-)?script\.googleusercontent\.com$/.test(origin);}
 (function(){
@@ -15,7 +15,7 @@ function stopScan(note){
  scanRun++;if(scanTimer)clearTimeout(scanTimer);scanTimer=null;
  if(scanReader){scanReader.reset();scanReader=null;}
  var video=el('video');if(video.srcObject){video.srcObject.getTracks().forEach(function(t){t.stop();});video.srcObject=null;}
- el('start').disabled=false;el('stop').classList.add('hidden');if(note)el('status').textContent=note;
+ el('start').disabled=false;el('start').classList.remove('hidden');el('stop').classList.add('hidden');if(note)el('status').textContent=note;
 }
 function clearDeliveryTimers(){
  if(scanAckTimer)clearTimeout(scanAckTimer);scanAckTimer=null;
@@ -23,16 +23,17 @@ function clearDeliveryTimers(){
 }
 function cameraError(error){
  if(error&&error.message==='decoder')return 'No se pudo cargar el lector. Revise la conexión y vuelva a intentar.';
- if(error&&['NotAllowedError','SecurityError'].indexOf(error.name)>=0)return 'Permita la cámara en los ajustes de este sitio y vuelva a intentar. Abra el lector en su propia pestaña.';
+ if(error&&['NotAllowedError','SecurityError'].indexOf(error.name)>=0)return 'Toque Abrir cámara. Si sigue bloqueada, permita la cámara para este sitio en los ajustes del navegador y vuelva a intentar.';
  if(error&&error.name==='NotFoundError')return 'No se encontró una cámara en este dispositivo.';
  if(error&&error.name==='NotReadableError')return 'Otra aplicación está usando la cámara. Ciérrela y vuelva a intentar.';
  return 'No se pudo abrir la cámara. Abra este enlace en Safari o Chrome y vuelva a intentar.';
 }
 async function startScan(){
+ scanAutoPending=false;
  clearDeliveryTimers();scanWaiting=false;scanDelivered=false;
  stopScan();scanValue='';el('return').classList.add('hidden');el('result').classList.add('hidden');el('result').classList.remove('pending','warning');el('camera').classList.remove('hidden');el('start').classList.remove('hidden');el('copy').textContent='Copiar código';
  if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){el('status').textContent='Abra este lector en una pestaña HTTPS de Safari o Chrome para usar la cámara.';return;}
- var run=scanRun;el('start').disabled=true;el('stop').classList.remove('hidden');el('status').textContent='Abriendo cámara…';
+ var run=scanRun;el('start').disabled=true;el('start').classList.add('hidden');el('stop').classList.remove('hidden');el('status').textContent='Abriendo cámara…';
  try{
   var zx=await loadDecoder();if(run!==scanRun)return;
   var hints=new Map();hints.set(zx.DecodeHintType.POSSIBLE_FORMATS,[zx.BarcodeFormat.CODE_39,zx.BarcodeFormat.CODE_128,zx.BarcodeFormat.QR_CODE,zx.BarcodeFormat.DATA_MATRIX,zx.BarcodeFormat.EAN_13,zx.BarcodeFormat.EAN_8,zx.BarcodeFormat.ITF,zx.BarcodeFormat.UPC_A,zx.BarcodeFormat.UPC_E]);
@@ -43,6 +44,11 @@ async function startScan(){
   el('status').textContent='Buscando código… Mantenga el teléfono quieto.';
   scanTimer=setTimeout(function(){stopScan('Aún no se pudo leer. Limpie la placa, evite reflejos y vuelva a intentar.');},60000);
  }catch(error){if(run===scanRun)stopScan(cameraError(error));}
+}
+function autoStartScan(){
+ if(!scanAutoPending||document.hidden)return;
+ // Tapping Escanear in the app already expresses intent. Try once; never retry a denial automatically.
+ scanAutoPending=false;startScan();
 }
 function foundCode(value){
  value=String(value||'').trim();if(!value||value.length>512)return;
@@ -68,8 +74,8 @@ window.addEventListener('message',function(event){
  returnToApp();
 });
 async function copyCode(){try{await navigator.clipboard.writeText(scanValue);el('copy').textContent='Código copiado';}catch(e){el('delivery').textContent='Mantenga pulsado el código para copiarlo y péguelo en mantenimiento.';}}
-window.addEventListener('pagehide',function(){stopScan();clearDeliveryTimers();scanWaiting=false;});
-document.addEventListener('visibilitychange',function(){if(document.hidden)stopScan();});
+window.addEventListener('pagehide',function(){stopScan();clearDeliveryTimers();scanWaiting=false;scanAutoPending=false;});
+document.addEventListener('visibilitychange',function(){if(document.hidden)stopScan();else autoStartScan();});
 
 function returnToApp(){
  if(!window.opener||!scanState||!scanTarget)return;
@@ -89,3 +95,5 @@ el('stop').addEventListener('click',function(){stopScan('Cámara detenida. Puede
 el('copy').addEventListener('click',copyCode);
 el('again').addEventListener('click',startScan);
 el('return').addEventListener('click',returnToApp);
+// Plain visits keep the manual button. Only an app-launched scan starts automatically.
+if(scanState&&scanTarget&&window.opener&&!window.opener.closed){scanAutoPending=true;autoStartScan();}

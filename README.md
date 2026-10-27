@@ -1,12 +1,16 @@
-# TFI · Lector de máquinas · v0.1.3
+# TFI · Lector de máquinas · v0.1.4
 
 Standalone Spanish live barcode/QR scanner for the maintenance TEST app. The scanner decodes on the phone and sends only the decoded identifier to the opening app. No Google account, ChatGPT account or app credentials are embedded here.
 
 Published TEST scanner: https://driedi-ops.github.io/CamScanner/
 
+## v0.1.4 update
+
+Opening the scanner from the maintenance app now makes one automatic camera-start attempt once the tab is visible. The app's existing **Escanear** tap supplies the user's intent; no additional scanner-button tap is normally needed. Ordinary visits to the bare public URL keep the manual **Abrir cámara** button. If automatic access is blocked, that button reappears with a retry/settings explanation. There are no automatic denial retries, background camera starts, or automatic restarts after stopping/backgrounding. Camera permission belongs to the browser: this code reuses any permission it retains, but cannot grant itself access, make a temporary grant permanent, or suppress a required prompt. No persistent permission flag or camera stream is stored. This scanner-only update remains compatible with private Apps Script v0.1.2.
+
 ## v0.1.3 update
 
-Scanner-only update, compatible with the private Apps Script v0.1.2 bridge. No Apps Script reinstall, configuration reset or redeployment is required for this update. After Apps Script acknowledges that one machine was selected, the scanner immediately requests focus for the app and closes its own tab. It does not close merely because a barcode was decoded. Unknown codes remain open with an explanation and rescan controls. If the browser keeps the tab open, a prominent **✓ Máquina recibida** confirmation and **Volver a mantenimiento** button remain. A blocked focus request no longer prevents the close request.
+Scanner-only update, compatible with the private Apps Script v0.1.2 bridge. No Apps Script reinstall, configuration reset or redeployment is required for these updates. After Apps Script acknowledges that one machine was selected, the scanner immediately requests focus for the app and closes its own tab. It does not close merely because a barcode was decoded. Unknown codes remain open with an explanation and rescan controls. If the browser keeps the tab open, a prominent **✓ Máquina recibida** confirmation and **Volver a mantenimiento** button remain. A blocked focus request no longer prevents the close request.
 
 ## Publish on GitHub Pages (about 5 minutes)
 
@@ -33,9 +37,9 @@ GitHub Free Pages uses a public repository. This site has no access to inventory
 
 ## Verification
 
-Run `node scanner-tests.cjs` with Node 18 or later; no npm install is required. It verifies automatic return only after an accepted acknowledgment, source/origin/nonce validation, unknown-code and missing-reply behavior, denied focus/close fallbacks, live-camera constraints with a mock camera, track shutdown, CSP restrictions and the vendor SRI checksum. An independently generated ReportLab EAN-13 fixture is decoded with the real vendored SDK and must return `7595461000032`. The fixture is a product barcode, not a TFI machine identifier.
+Run `node scanner-tests.cjs` with Node 18 or later; no npm install is required. It verifies automatic camera startup for visible app launches, manual fallback after denial without permission loops, no background start or restart after stopping, automatic return only after an accepted acknowledgment, source/origin/nonce validation, unknown-code and missing-reply behavior, denied focus/close fallbacks, live-camera constraints with a mock camera, track shutdown, CSP restrictions and the vendor SRI checksum. An independently generated ReportLab EAN-13 fixture is decoded with the real vendored SDK and must return `7595461000032`. The fixture is a product barcode, not a TFI machine identifier.
 
-David confirmed that the hosted v0.1.2 scanner read a plaque and carried the result into the Apps Script app. It left the scanner tab open, which prompted this v0.1.3 update. The revised automatic return still requires a field test on the user's iPhone/Android browser. A successful product scan alone does not prove that every machine plaque's black barcode is readable or that its contents match a printed serial.
+The user's iPhone recording confirms that scanner v0.1.3 reads a plaque and returns to Apps Script with the machine selected. The complete hours/photo/save workflow has not yet been field-tested. Version v0.1.4 automatic camera startup still needs a field test on the user's browser. A successful scan does not prove that every machine plaque's black barcode is readable or that its contents match a printed serial.
 
 ## License and provenance
 
@@ -43,4 +47,4 @@ The vendored ZXing library is distributed under **Apache-2.0**, with the upstrea
 
 ## Versioning
 
-Use GitHub commits to review and revert scanner changes. Keep scanner hosting separate from the Google Apps Script TEST deployment and the production inventory project. Scanner v0.1.3 is compatible with Apps Script TEST v0.1.2. This version has no service worker/offline installation; those can be evaluated separately after the online round trip works.
+Use GitHub commits to review and revert scanner changes. Keep scanner hosting separate from the Google Apps Script TEST deployment and the production inventory project. Scanner v0.1.4 is compatible with Apps Script TEST v0.1.2. This version has no service worker/offline installation; those can be evaluated separately after the online round trip works.
