@@ -21,7 +21,7 @@ function harness(options={}){
   document:{hidden:!!options.hidden,getElementById:el,addEventListener:(n,fn)=>events[n]=fn},
   window:{isSecureContext:true,opener:options.standalone?null:opener,
    close(){closed++;if(options.closeThrows)throw Error('blocked');},
-   ZXing:{BrowserMultiFormatReader:Reader,DecodeHintType:{POSSIBLE_FORMATS:1,TRY_HARDER:2},BarcodeFormat:{}},addEventListener:(n,fn)=>events[n]=fn}};
+   ZXing:{BrowserMultiFormatReader:Reader,DecodeHintType:{POSSIBLE_FORMATS:1,TRY_HARDER:2},BarcodeFormat:{CODE_39:'C39',QR_CODE:'QR'}},addEventListener:(n,fn)=>events[n]=fn}};
  vm.createContext(ctx);vm.runInContext(source,ctx);
  // Most bridge tests launch manually; set the same valid session without running startup.
  if(!options.appLaunch){ctx.scanState=state;ctx.scanTarget=target;}
@@ -90,6 +90,8 @@ function harness(options={}){
  for(const [v,plate] of [['CAT00320CMYK11426',true],['cat00950jtn201001',true],['TN200735',true],['MYK11426',true],['39967',false],['40010',false],['https://agendate.link/core/maquina/c139',false],['7591196000017',false],['TFI-MACHINE:1234abcd',false]])assert.equal(p1.ctx.isPlateCode(v),plate,v);
  // Restarting or stopping clears the plate timer and any held sticker.
  const p6=harness();await p6.ctx.startScan();p6.found('39967');await p6.ctx.startScan();p6.tick(8000);assert.equal(p6.messages.length,0);
+ // Only Code 39 and QR are searched (speed): the reader is built with exactly these formats.
+ assert(/POSSIBLE_FORMATS,\[zx\.BarcodeFormat\.CODE_39,zx\.BarcodeFormat\.QR_CODE\]\)/.test(source));
  // Fallback order: a Holt sticker wins over a QR link seen earlier.
  const p7=harness();await p7.ctx.startScan();p7.found('https://agendate.link/core/maquina/abc');p7.found('39935');p7.tick(8000);assert.equal(p7.messages[0].data.value,'39935');
  const p8=harness();await p8.ctx.startScan();p8.found('39935');p8.found('https://agendate.link/core/maquina/abc');p8.tick(8000);assert.equal(p8.messages[0].data.value,'39935');
@@ -98,7 +100,7 @@ function harness(options={}){
  assert(!/type=.file|fetch\(|XMLHttpRequest|localStorage|sessionStorage|console\.log|https:\/\/cdn/.test(source));
  const html=fs.readFileSync(__dirname+'/index.html','utf8'),crypto=require('crypto'),vendor=fs.readFileSync(__dirname+'/vendor/zxing-0.23.0.min.js');
  assert(html.includes("connect-src 'none'"));assert(!/onclick=|<script[^>]*https?:/.test(html));
- assert(html.includes('scanner.js?v=0.1.7'));assert(!html.includes('PRUEBAS'));assert(html.includes('sha384-'+crypto.createHash('sha384').update(vendor).digest('base64')));
+ assert(html.includes('scanner.js?v=0.1.8'));assert(!html.includes('PRUEBAS'));assert(html.includes('sha384-'+crypto.createHash('sha384').update(vendor).digest('base64')));
  const zx=require(__dirname+'/vendor/zxing-0.23.0.min.js');
  assert.equal(typeof zx.BrowserMultiFormatReader,'function');assert.equal(typeof zx.BrowserMultiFormatReader.prototype.decodeFromConstraints,'function');
  const f=JSON.parse(fs.readFileSync(__dirname+'/ean13-fixture.json','utf8'));

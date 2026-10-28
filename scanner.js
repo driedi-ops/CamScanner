@@ -48,7 +48,9 @@ async function startScan(){
  var run=scanRun;el('start').disabled=true;el('start').classList.add('hidden');el('stop').classList.remove('hidden');el('status').textContent='Abriendo cámara…';
  try{
   var zx=await loadDecoder();if(run!==scanRun)return;
-  var hints=new Map();hints.set(zx.DecodeHintType.POSSIBLE_FORMATS,[zx.BarcodeFormat.CODE_39,zx.BarcodeFormat.CODE_128,zx.BarcodeFormat.QR_CODE,zx.BarcodeFormat.DATA_MATRIX,zx.BarcodeFormat.EAN_13,zx.BarcodeFormat.EAN_8,zx.BarcodeFormat.ITF,zx.BarcodeFormat.UPC_A,zx.BarcodeFormat.UPC_E]);
+  var hints=new Map();// Machines only carry Code 39 (CAT plate, Holt/Etiqueta stickers) and QR codes. Looking for just these two is
+  // about 3× faster per picture than the full list (field video, Oct 28), so the plate gets ~3× more tries.
+  hints.set(zx.DecodeHintType.POSSIBLE_FORMATS,[zx.BarcodeFormat.CODE_39,zx.BarcodeFormat.QR_CODE]);
   hints.set(zx.DecodeHintType.TRY_HARDER,true);
   var reader=new zx.BrowserMultiFormatReader(hints,250);scanReader=reader;
   scanPhase='placa';scanFallback='';

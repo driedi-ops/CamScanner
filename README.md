@@ -1,8 +1,14 @@
-# TFI · Lector de máquinas · v0.1.7
+# TFI · Lector de máquinas · v0.1.8
 
 Standalone Spanish live barcode/QR scanner for the maintenance TEST app. The scanner decodes on the phone and sends only the decoded identifier to the opening app. No Google account, ChatGPT account or app credentials are embedded here.
 
 Published TEST scanner: https://driedi-ops.github.io/CamScanner/
+
+## v0.1.8 update: faster reading (field test, Oct 28)
+
+- On the excavator video the plate (*CAT00320KMYK30630*) is readable from second 5. The scanner still missed it in 8 seconds because each try took too long while it searched for 9 barcode types.
+- Machines only carry **Code 39** (CAT plate, Holt/Etiqueta stickers) and **QR** codes. Searching just those two is **3.4× faster** (225 ms vs 776 ms per picture on the same frames, same hits), so the plate gets 3× more tries in the 8 seconds.
+- Product barcodes (EAN/UPC) are no longer read by this machine scanner. A future product scanner can use its own list.
 
 ## v0.1.7 update: field test, Oct 27
 
