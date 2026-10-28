@@ -29,7 +29,7 @@ function harness(options={}){
   counts:()=>({stopped,reset,focused,closed,cameraRequests}),
   found:value=>callback({getText:()=>value}),
   // Bridge tests: after the plate-first window, any code is accepted.
-  foundAny(value){this.tick(5000);callback({getText:()=>value});},
+  foundAny(value){this.tick(8000);callback({getText:()=>value});},
   ack(accepted,overrides={}){events.message({origin:target,source:opener,data:{type:'TFI_SCAN_ACK',state,accepted},...overrides});},
   tick(ms){for(const [id,t] of Array.from(timers)){if(t.ms===ms&&timers.has(id)){timers.delete(id);t.fn();}}},
   timerCount:()=>timers.size};
@@ -83,19 +83,22 @@ function harness(options={}){
  // v0.1.6 plate first: a sticker seen first is held; the plate wins inside the window; sticker used when the window ends.
  const p1=harness();await p1.ctx.startScan();p1.found('39967');assert.equal(p1.messages.length,0);assert(p1.el('status').textContent.includes('Sigo buscando la placa'));
  p1.found('CAT00320EMYK30153');assert.equal(p1.messages[0].data.value,'CAT00320EMYK30153');
- const p2=harness();await p2.ctx.startScan();p2.found('39967');p2.found('https://agendate.link/core/maquina/abc');assert.equal(p2.messages.length,0);p2.tick(5000);assert.equal(p2.messages[0].data.value,'39967');
- const p3=harness();await p3.ctx.startScan();p3.tick(5000);assert.equal(p3.messages.length,0);assert(p3.el('status').textContent.includes('No se pudo leer la placa'));p3.found('40010');assert.equal(p3.messages[0].data.value,'40010');
+ const p2=harness();await p2.ctx.startScan();p2.found('39967');p2.found('https://agendate.link/core/maquina/abc');assert.equal(p2.messages.length,0);p2.tick(8000);assert.equal(p2.messages[0].data.value,'39967');
+ const p3=harness();await p3.ctx.startScan();p3.tick(8000);assert.equal(p3.messages.length,0);assert(p3.el('status').textContent.includes('No se pudo leer la placa'));p3.found('40010');assert.equal(p3.messages[0].data.value,'40010');
  const p4=harness();await p4.ctx.startScan();assert(!p4.el('any').classList.contains('hidden'));p4.el('any').click();p4.found('40010');assert.equal(p4.messages[0].data.value,'40010');
  const p5=harness();await p5.ctx.startScan();p5.found('MYK30153');assert.equal(p5.messages[0].data.value,'MYK30153');
  for(const [v,plate] of [['CAT00320CMYK11426',true],['cat00950jtn201001',true],['TN200735',true],['MYK11426',true],['39967',false],['40010',false],['https://agendate.link/core/maquina/c139',false],['7591196000017',false],['TFI-MACHINE:1234abcd',false]])assert.equal(p1.ctx.isPlateCode(v),plate,v);
  // Restarting or stopping clears the plate timer and any held sticker.
- const p6=harness();await p6.ctx.startScan();p6.found('39967');await p6.ctx.startScan();p6.tick(5000);assert.equal(p6.messages.length,0);
+ const p6=harness();await p6.ctx.startScan();p6.found('39967');await p6.ctx.startScan();p6.tick(8000);assert.equal(p6.messages.length,0);
+ // Fallback order: a Holt sticker wins over a QR link seen earlier.
+ const p7=harness();await p7.ctx.startScan();p7.found('https://agendate.link/core/maquina/abc');p7.found('39935');p7.tick(8000);assert.equal(p7.messages[0].data.value,'39935');
+ const p8=harness();await p8.ctx.startScan();p8.found('39935');p8.found('https://agendate.link/core/maquina/abc');p8.tick(8000);assert.equal(p8.messages[0].data.value,'39935');
  // Torch button only when the camera reports torch support.
  assert(p1.el('torch').classList.contains('hidden'));
  assert(!/type=.file|fetch\(|XMLHttpRequest|localStorage|sessionStorage|console\.log|https:\/\/cdn/.test(source));
  const html=fs.readFileSync(__dirname+'/index.html','utf8'),crypto=require('crypto'),vendor=fs.readFileSync(__dirname+'/vendor/zxing-0.23.0.min.js');
  assert(html.includes("connect-src 'none'"));assert(!/onclick=|<script[^>]*https?:/.test(html));
- assert(html.includes('scanner.js?v=0.1.6'));assert(!html.includes('PRUEBAS'));assert(html.includes('sha384-'+crypto.createHash('sha384').update(vendor).digest('base64')));
+ assert(html.includes('scanner.js?v=0.1.7'));assert(!html.includes('PRUEBAS'));assert(html.includes('sha384-'+crypto.createHash('sha384').update(vendor).digest('base64')));
  const zx=require(__dirname+'/vendor/zxing-0.23.0.min.js');
  assert.equal(typeof zx.BrowserMultiFormatReader,'function');assert.equal(typeof zx.BrowserMultiFormatReader.prototype.decodeFromConstraints,'function');
  const f=JSON.parse(fs.readFileSync(__dirname+'/ean13-fixture.json','utf8'));

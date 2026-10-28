@@ -1,8 +1,14 @@
-# TFI · Lector de máquinas · v0.1.6
+# TFI · Lector de máquinas · v0.1.7
 
 Standalone Spanish live barcode/QR scanner for the maintenance TEST app. The scanner decodes on the phone and sends only the decoded identifier to the opening app. No Google account, ChatGPT account or app credentials are embedded here.
 
 Published TEST scanner: https://driedi-ops.github.io/CamScanner/
+
+## v0.1.7 update: field test, Oct 27
+
+- The plate window is now **8 seconds** (it was 5). In the field video the plate became readable after about 7 seconds, once the camera had focused and the phone was steady.
+- If the plate isn't read, the **Holt sticker is preferred over a QR link**, even when the QR was read first. Before this, the agendate.link QR could win and the form answered "máquina sin identificar".
+- I tested a strip-by-strip plate reader on the field video frames. It found nothing the normal reader didn't, so it was not added.
 
 ## v0.1.6 update: plate first, then Holt sticker or QR
 

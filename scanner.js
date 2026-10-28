@@ -3,7 +3,9 @@ var scanReader=null,scanRun=0,scanTimer=null,scanValue='',scanState='',scanTarge
 var scanWaiting=false,scanDelivered=false,scanAckTimer=null,scanReturnTimer=null,scanAutoPending=false;
 // Plate first: for PLATE_MS only the CAT plate (PIN/serial) is accepted. A Holt sticker or QR seen meanwhile is kept
 // and used when that time runs out; with nothing seen, any code is accepted from then on.
-var PLATE_MS=5000,scanPhase='placa',scanFallback='',scanPhaseTimer=null,scanTrack=null,torchOn=false;
+var PLATE_MS=8000,scanPhase='placa',scanFallback='',scanPhaseTimer=null,scanTrack=null,torchOn=false;
+// Order when the plate can't be read: Holt sticker (4–6 digits) before other codes, links (QR URLs) last.
+function fallbackRank(v){v=String(v||'');if(/^\d{4,6}$/.test(v))return 3;if(/^TFI-MACHINE:/i.test(v))return 3;if(/^https?:\/\//i.test(v))return 1;return 2;}
 function isPlateCode(v){
  var k=String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
  if(/^CAT[0-9A-Z]{14}$/.test(k))return true; // PIN completo: CAT00320CMYK11426
@@ -62,12 +64,15 @@ async function startScan(){
 function onDecoded(value){
  value=String(value||'').trim();if(!value||value.length>512)return;
  if(scanPhase==='placa'&&!isPlateCode(value)){
-  if(!scanFallback){scanFallback=value;el('status').textContent='Leí un sticker. Sigo buscando la placa unos segundos…';}
+  if(!scanFallback||fallbackRank(value)>fallbackRank(scanFallback)){
+   var first=!scanFallback;scanFallback=value;
+   if(first)el('status').textContent='Leí un sticker. Sigo buscando la placa unos segundos…';
+  }
   return;
  }
  foundCode(value);
 }
-// After the plate time (or on tap): use a sticker already seen, otherwise accept the next code of any kind.
+// After the plate time (or on tap): use the best sticker already seen, otherwise accept the next code of any kind.
 function acceptAnyCode(timedOut){
  if(scanPhaseTimer)clearTimeout(scanPhaseTimer);scanPhaseTimer=null;
  scanPhase='cualquiera';el('any').classList.add('hidden');
